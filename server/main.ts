@@ -97,22 +97,18 @@ async function recorder() {
   const video = new RtpSourceCallback();
 
   {
-    const jitterBuffer = new JitterBufferCallback(48000);
     const depacketizer = new DepacketizeCallback("opus");
 
-    audio.pipe((input) => jitterBuffer.input(input));
-    jitterBuffer.pipe(depacketizer.input);
+    audio.pipe(depacketizer.input);
     depacketizer.pipe(avBuffer.inputAudio);
     avBuffer.pipeAudio(webm.inputAudio);
   }
   {
-    const jitterBuffer = new JitterBufferCallback(90000);
     const depacketizer = new DepacketizeCallback("vp8", {
       isFinalPacketInSequence: (h) => h.marker,
     });
 
-    video.pipe((input) => jitterBuffer.input(input));
-    jitterBuffer.pipe(depacketizer.input);
+    video.pipe(depacketizer.input);
     depacketizer.pipe(avBuffer.inputVideo);
     avBuffer.pipeVideo(webm.inputVideo);
   }
@@ -180,7 +176,7 @@ const dashServer = createServer();
 dashServer.on("request", async (req, res) => {
   const filePath = dir + req.url;
 
-  console.log({ filePath });
+  // console.log({ filePath });
 
   const extname = String(path.extname(filePath)).toLowerCase();
   const mimeTypes: any = {

@@ -11,7 +11,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "werift": "^0.17.4",
+    "werift": "^0.17.5",
     "ws": "^8.11.0",
     "xmlbuilder2": "^3.0.2"
   },
