@@ -2,15 +2,16 @@
   "name": "webrtc-dash",
   "version": "1.0.0",
   "description": "",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
   "license": "MIT",
+  "author": "",
+  "scripts": {
+    "client": "parcel ./client/index.html",
+    "server": "ts-node-dev server/main.ts"
+  },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "werift": "^0.17.2",
+    "werift": "^0.17.4",
     "ws": "^8.11.0",
     "xmlbuilder2": "^3.0.2"
   },
@@ -20,6 +21,8 @@
     "@types/react-dom": "^18.0.9",
     "@types/ws": "^8.5.3",
     "parcel": "^2.8.1",
+    "process": "^0.11.10",
+    "ts-node-dev": "^2.0.0",
     "typescript": "^4.9.4"
   }
 }

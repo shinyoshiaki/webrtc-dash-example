@@ -24,32 +24,35 @@ const dir = "./dash";
 const dashServerPort = 8125;
 const signalingServerPort = 8888;
 
+console.log({ dir, dashServerPort, signalingServerPort });
+
 const signalingServer = new Server({ port: signalingServerPort });
 signalingServer.on("connection", async (socket) => {
   const { audio, video } = await recorder();
 
   const pc = new RTCPeerConnection();
-  {
-    pc.addTransceiver("audio", { direction: "recvonly" }).onTrack.subscribe(
-      (track) => {
-        track.onReceiveRtp.subscribe((rtp) => {
-          audio.input(rtp);
-        });
-      }
-    );
-  }
-  {
-    pc.addTransceiver("video", { direction: "recvonly" }).onTrack.subscribe(
-      (track, transceiver) => {
-        track.onReceiveRtp.subscribe((rtp) => {
-          video.input(rtp);
-        });
-        setInterval(() => {
-          transceiver.receiver.sendRtcpPLI(track.ssrc!);
-        }, 5_000);
-      }
-    );
-  }
+
+  pc.addTransceiver("audio", { direction: "recvonly" }).onTrack.subscribe(
+    (track) => {
+      // 音声のRTPを受け取る
+      track.onReceiveRtp.subscribe((rtp) => {
+        audio.input(rtp);
+      });
+    }
+  );
+
+  pc.addTransceiver("video", { direction: "recvonly" }).onTrack.subscribe(
+    (track, transceiver) => {
+      // 映像のRTPを受け取る
+      track.onReceiveRtp.subscribe((rtp) => {
+        video.input(rtp);
+      });
+      // 5秒ごとにキーフレームを要求する
+      setInterval(() => {
+        transceiver.receiver.sendRtcpPLI(track.ssrc!);
+      }, 5_000);
+    }
+  );
 
   const sdp = await pc.setLocalDescription(await pc.createOffer());
   socket.send(JSON.stringify(sdp));
@@ -57,6 +60,7 @@ signalingServer.on("connection", async (socket) => {
   socket.on("message", (data: any) => {
     const obj = JSON.parse(data);
     if (obj.sdp) {
+      console.log(new Date().toISOString(), "sRD");
       pc.setRemoteDescription(obj);
     }
   });
@@ -121,28 +125,40 @@ async function recorder() {
         switch (value.kind) {
           case "initial":
             {
+              // webmのSegmentのヘッダー部
               await writeFile(dir + "/init.webm", value.saveToFile);
             }
             break;
           case "cluster":
             {
               if (value.previousDuration! > 0) {
+                // MPDにクラスターの長さを書き込む
                 mpd.segmentationTimeLine.push({
                   d: value.previousDuration!,
                   t: timestamp,
                 });
                 await writeFile(dir + "/dash.mpd", mpd.build());
+                // 一時保存していたクラスターをDASH用にリネームする
+                // ファイル名はMPDで定義したとおりにする。
                 await rename(
                   dir + "/cluster.webm",
                   dir + `/media${timestamp}.webm`
                 );
+                console.log(
+                  new Date().toISOString(),
+                  "cluster",
+                  `media${timestamp}.webm`
+                );
                 timestamp += value.previousDuration!;
               }
+
+              // クラスターを一時保存する
               await writeFile(dir + `/cluster.webm`, value.saveToFile);
             }
             break;
           case "block":
             {
+              // 個々のブロックはクラスターの一時保存先に足していく
               await appendFile(dir + `/cluster.webm`, value.saveToFile);
             }
             break;
@@ -164,8 +180,13 @@ const dashServer = createServer();
 dashServer.on("request", async (req, res) => {
   const filePath = dir + req.url;
 
+  console.log({ filePath });
+
   const extname = String(path.extname(filePath)).toLowerCase();
-  const mimeTypes = { ".mpd": "application/dash+xml", ".webm": "video/webm" };
+  const mimeTypes: any = {
+    ".mpd": "application/dash+xml",
+    ".webm": "video/webm",
+  };
 
   if (extname === ".mpd") {
     await writeFile(dir + "/dash.mpd", mpd.build());

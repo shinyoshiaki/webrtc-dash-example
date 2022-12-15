@@ -42,19 +42,6 @@ export class MPD {
             ContentComponent: {
               ...toAttributes({ contentType: "video", id: 1 }),
             },
-            SegmentTemplate: {
-              ...toAttributes({
-                timescale: 1000,
-                initialization: this.initialization,
-                media: this.media,
-                presentationTimeOffset: 0,
-              }),
-              SegmentTimeline: {
-                S: this.segmentationTimeLine.map((s) => ({
-                  ...toAttributes({ d: s.d, t: s.t }),
-                })),
-              },
-            },
             Representation: {
               ...toAttributes({
                 id: "1",
@@ -62,7 +49,19 @@ export class MPD {
                 height: this.height,
                 codecs: this.codecs.join(","),
               }),
-              SubRepresentation: { ...toAttributes({ contentComponent: "1" }) },
+              SegmentTemplate: {
+                ...toAttributes({
+                  timescale: 1000,
+                  initialization: this.initialization,
+                  media: this.media,
+                  presentationTimeOffset: 0,
+                }),
+                SegmentTimeline: {
+                  S: this.segmentationTimeLine.map((s) => ({
+                    ...toAttributes({ d: s.d, t: s.t }),
+                  })),
+                },
+              },
             },
           },
         },
@@ -83,7 +82,7 @@ export class MPD {
 }
 
 const toAttributes = (o: object) =>
-  Object.entries(o).reduce((acc: {}, [k, v]) => {
+  Object.entries(o).reduce((acc: any, [k, v]) => {
     acc["@" + k] = v;
     return acc;
   }, {});
